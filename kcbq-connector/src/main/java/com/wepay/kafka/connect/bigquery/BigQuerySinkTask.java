@@ -40,10 +40,7 @@ import com.wepay.kafka.connect.bigquery.write.batch.GCSBatchTableWriter;
 import com.wepay.kafka.connect.bigquery.write.batch.KCBQThreadPoolExecutor;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriter;
 import com.wepay.kafka.connect.bigquery.write.batch.TableWriterBuilder;
-import com.wepay.kafka.connect.bigquery.write.row.AdaptiveBigQueryWriter;
-import com.wepay.kafka.connect.bigquery.write.row.BigQueryWriter;
-import com.wepay.kafka.connect.bigquery.write.row.GCSToBQWriter;
-import com.wepay.kafka.connect.bigquery.write.row.SimpleBigQueryWriter;
+import com.wepay.kafka.connect.bigquery.write.row.*;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -81,7 +78,7 @@ public class BigQuerySinkTask extends SinkTask {
   private RecordConverter<Map<String, Object>> recordConverter;
   private Map<String, TableId> topicsToBaseTableIds;
   private boolean useMessageTimeDatePartitioning;
-
+  private boolean useSchemaAsTable;
   private TopicPartitionManager topicPartitionManager;
 
   private KCBQThreadPoolExecutor executor;
@@ -129,7 +126,10 @@ public class BigQuerySinkTask extends SinkTask {
 
   private PartitionedTableId getRecordTable(SinkRecord record) {
     TableId baseTableId = topicsToBaseTableIds.get(record.topic());
-
+    if(useSchemaAsTable) {
+      String tableName = sanitizeTableName(record.valueSchema().name());
+      baseTableId =  TableId.of(baseTableId.getDataset(),tableName);
+    }
     PartitionedTableId.Builder builder = new PartitionedTableId.Builder(baseTableId);
     if (useMessageTimeDatePartitioning) {
       if (record.timestampType() == TimestampType.NO_TIMESTAMP_TYPE) {
@@ -262,7 +262,13 @@ public class BigQuerySinkTask extends SinkTask {
     BigQuery bigQuery = getBigQuery();
     int retry = config.getInt(config.BIGQUERY_RETRY_CONFIG);
     long retryWait = config.getLong(config.BIGQUERY_RETRY_WAIT_CONFIG);
-    return new GCSToBQWriter(getGcs(),
+    if( config.getBoolean(config.WRITE_GCS_CONFIG))
+      return new PartitionGCSWriter(getGcs(),
+              bigQuery,
+              retry,
+              retryWait);
+    else
+      return new GCSToBQWriter(getGcs(),
                          bigQuery,
                          retry,
                          retryWait);
@@ -290,6 +296,7 @@ public class BigQuerySinkTask extends SinkTask {
     topicPartitionManager = new TopicPartitionManager();
     useMessageTimeDatePartitioning =
         config.getBoolean(config.BIGQUERY_MESSAGE_TIME_PARTITIONING_CONFIG);
+    useSchemaAsTable =  config.getBoolean(config.USE_SCHEMA_AS_TABLE_CONFIG);
     if (hasGCSBQTask) {
       startGCSToBQLoadTask();
     }
@@ -380,5 +387,8 @@ public class BigQuerySinkTask extends SinkTask {
       Set<TopicPartition> assignment = context.assignment();
       context.resume(assignment.toArray(new TopicPartition[assignment.size()]));
     }
+  }
+  private  String sanitizeTableName(String tableName) {
+    return tableName.replaceAll("[^a-zA-Z0-9_]", "_");
   }
 }

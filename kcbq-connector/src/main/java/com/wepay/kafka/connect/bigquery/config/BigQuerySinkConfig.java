@@ -177,6 +177,26 @@ public class BigQuerySinkConfig extends AbstractConfig {
   private static final String ALL_BQ_FIELDS_NULLABLE_DOC =
       "If true, no fields in any produced BigQuery schema will be REQUIRED. All "
       + "non-nullable avro fields will be translated as NULLABLE (or REPEATED, if arrays).";
+  public static final String USE_SCHEMA_AS_TABLE_CONFIG =
+          "useSchemaAsTable";
+  private static final ConfigDef.Type USE_SCHEMA_AS_TABLE_CONFIG_TYPE =
+          ConfigDef.Type.BOOLEAN;
+  public static final Boolean USE_SCHEMA_AS_TABLE_CONFIG_DEFAULT =                   false;
+  private static final ConfigDef.Importance USE_SCHEMA_AS_TABLE_CONFIG_IMPORTANCE =
+          ConfigDef.Importance.LOW;
+  private static final String USE_SCHEMA_AS_TABLE_CONFIG_DOC =
+          "Whether or not to use the schema name as table name ."
+                  + "Major for the topic which has multi schemas and the Avro producer has a config as value.subject.name.strategy=useRecordNameStrategy";
+  public static final String WRITE_GCS_CONFIG =
+          "writeGCS";
+  private static final ConfigDef.Type WRITE_GCS_CONFIG_TYPE =
+          ConfigDef.Type.BOOLEAN;
+  public static final Boolean WRITE_GCS_CONFIG_DEFAULT =                   false;
+  private static final ConfigDef.Importance WRITE_GCS_CONFIG_IMPORTANCE =
+          ConfigDef.Importance.LOW;
+  private static final String WRITE_GCS_CONFIG_DOC =
+          "Whether or not to persist data to google cloud storage . If this is true, the data on GCS will not be loaded to  Bigquery periodically.";
+
 
   static {
     config = new ConfigDef()
@@ -270,7 +290,18 @@ public class BigQuerySinkConfig extends AbstractConfig {
             CONVERT_DOUBLE_SPECIAL_VALUES_DEFAULT,
             CONVERT_DOUBLE_SPECIAL_VALUES_IMPORTANCE,
             CONVERT_DOUBLE_SPECIAL_VALUES_DOC
-         );
+         ).define(
+                    USE_SCHEMA_AS_TABLE_CONFIG,
+                    USE_SCHEMA_AS_TABLE_CONFIG_TYPE,
+                    USE_SCHEMA_AS_TABLE_CONFIG_DEFAULT,
+                    USE_SCHEMA_AS_TABLE_CONFIG_IMPORTANCE,
+                    USE_SCHEMA_AS_TABLE_CONFIG_DOC)
+            .define(
+                    WRITE_GCS_CONFIG,
+                    WRITE_GCS_CONFIG_TYPE,
+                    WRITE_GCS_CONFIG_DEFAULT,
+                    WRITE_GCS_CONFIG_IMPORTANCE,
+                    WRITE_GCS_CONFIG_DOC);
   }
 
   @SuppressWarnings("unchecked")

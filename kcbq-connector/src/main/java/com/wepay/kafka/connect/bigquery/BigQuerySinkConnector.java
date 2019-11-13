@@ -154,8 +154,8 @@ public class BigQuerySinkConnector extends SinkConnector {
           err
       );
     }
-
-    ensureExistingTables();
+    if(config.getBoolean(config.USE_SCHEMA_AS_TABLE_CONFIG)==false)
+      ensureExistingTables();
   }
 
   @Override
@@ -176,7 +176,7 @@ public class BigQuerySinkConnector extends SinkConnector {
     for (int i = 0; i < maxTasks; i++) {
       // Copy configProperties so that tasks can't interfere with each others' configurations
       HashMap<String, String> taskConfig = new HashMap<>(configProperties);
-      if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty()) {
+      if (i == 0 && !config.getList(BigQuerySinkConfig.ENABLE_BATCH_CONFIG).isEmpty() && false==config.getBoolean(BigQuerySinkConfig.WRITE_GCS_CONFIG)) {
         // if batch loading is enabled, configure first task to do the GCS -> BQ loading
         taskConfig.put(GCS_BQ_TASK_CONFIG_KEY, "true");
       }
